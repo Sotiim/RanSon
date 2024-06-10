@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RanSon</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        #app {
+            margin: 20px auto;
+            max-width: 600px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #333;
+            margin-top: 20px;
+        }
+        h3, h4 {
+            color: #666;
+            margin-top: 10px;
+        }
+        img {
+            max-width: 100%;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        audio {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .controls select, .controls button {
+            padding: 10px;
+            margin-right: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .regenerate-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            background-color: #28a745;
+            color: #fff;
+            cursor: pointer;
+        }
+        .regenerate-button:hover {
+            background-color: #218838;
+        }
+        .regenerate-button[disabled] {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>RanSon</h1>
+        <div class="controls">
+            <select id="genreSelect"></select>
+            <button onclick="getSongByGenre()">Obtener canción</button>
+        </div>
+        <div id="songInfo"></div>
+        <button class="regenerate-button" id="regenerateButton" onclick="getSongByGenre()" disabled>¡Otra canción!</button>
+    </div>
+
+    <script>
+        function fetchGenres() {
+            var script = document.createElement('script');
+            var callbackName = 'genreCallback';
+            script.src = `https://api.deezer.com/genre?output=jsonp&callback=${callbackName}`;
+            document.body.appendChild(script);
+
+            window[callbackName] = function(data) {
+                var genreSelect = document.getElementById('genreSelect');
+                data.data.forEach(function(genre) {
+                    if (genre.name !== "All") {
+                        var option = document.createElement('option');
+                        option.value = genre.id;
+                        option.textContent = genre.name;
+                        genreSelect.appendChild(option);
+                    }
+                });
+
+                document.body.removeChild(script);
+                delete window[callbackName];
+            };
+        }
+
+        fetchGenres();
+
+        function getSongByGenre() {
+            var genreId = document.getElementById('genreSelect').value;
+            var callbackName = 'genreSongCallback';
+            var script = document.createElement('script');
+            script.src = `https://api.deezer.com/genre/${genreId}/artists?output=jsonp&callback=${callbackName}`;
+            document.body.appendChild(script);
+
+            window[callbackName] = function(data) {
+                if (data.data.length === 0) {
+                    alert('No se encontraron canciones para este género.');
+                    return;
+                }
+
+                var randomArtist = data.data[Math.floor(Math.random() * data.data.length)];
+                var artistCallbackName = 'artistCallback';
+                var artistScript = document.createElement('script');
+                artistScript.src = `https://api.deezer.com/artist/${randomArtist.id}/top?limit=50&output=jsonp&callback=${artistCallbackName}`;
+                document.body.appendChild(artistScript);
+
+                window[artistCallbackName] = function(trackData) {
+                    if (trackData.data.length === 0) {
+                        alert('No se encontraron canciones para este artista.');
+                        return;
+                    }
+
+                    var randomTrack = trackData.data[Math.floor(Math.random() * trackData.data.length)];
+                    displayTrackInfo(randomTrack);
+
+                    document.getElementById('regenerateButton').disabled = false;
+
+                    document.body.removeChild(artistScript);
+                    delete window[artistCallbackName];
+                };
+
+                document.body.removeChild(script);
+                delete window[callbackName];
+            };
+        }
+
+        function displayTrackInfo(track) {
+            var songInfoElement = document.getElementById("songInfo");
+            songInfoElement.innerHTML = `
+                <h2>Nombre de la canción: ${track.title}</h2>
+                <h3>Nombre de la banda: ${track.artist.name}</h3>
+                <h4>Álbum: ${track.album.title}</h4>
+                <img src="${track.album.cover_big}" alt="Portada">
+                <audio controls>
+                    <source src="${track.preview}" type="audio/mpeg">
+                    Su navegador no soporta el elemento de audio.
+                </audio>
+            `;
+        }
+    </script>
+</body>
+</html>
