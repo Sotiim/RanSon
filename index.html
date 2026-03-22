@@ -1,160 +1,781 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RanSon</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f0f0f0;
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1c1c2a;
+            --accent: #e8ff47;
+            --accent2: #ff6b6b;
+            --text: #f0f0f5;
+            --muted: #6b6b8a;
+            --border: rgba(255,255,255,0.07);
+            --glow: rgba(232,255,71,0.15);
         }
-        #app {
-            margin: 20px auto;
-            max-width: 600px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Ambient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            left: -20%;
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(ellipse, rgba(232,255,71,0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -20%;
+            right: -10%;
+            width: 50%;
+            height: 50%;
+            background: radial-gradient(ellipse, rgba(255,107,107,0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 52px;
+        }
+        .logo {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 12px;
         }
         h1 {
-            color: #333;
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(52px, 12vw, 88px);
+            font-weight: 400;
+            font-style: italic;
+            line-height: 0.9;
+            letter-spacing: -0.02em;
+            color: var(--text);
         }
-        h2 {
-            color: #333;
-            margin-top: 20px;
+        h1 span {
+            color: var(--accent);
         }
-        h3, h4 {
-            color: #666;
-            margin-top: 10px;
+        .tagline {
+            margin-top: 16px;
+            font-size: 14px;
+            color: var(--muted);
+            letter-spacing: 0.05em;
         }
-        img {
-            max-width: 100%;
-            margin-top: 20px;
-            border-radius: 5px;
-        }
-        audio {
-            width: 100%;
-            margin-top: 20px;
-        }
+
+        /* Controls */
         .controls {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+            margin-bottom: 36px;
+        }
+
+        .select-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        .select-wrapper::after {
+            content: '↓';
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent);
+            font-size: 14px;
+            pointer-events: none;
+            font-family: 'Syne', sans-serif;
+        }
+
+        select {
+            width: 100%;
+            padding: 14px 44px 14px 18px;
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            appearance: none;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            letter-spacing: 0.02em;
+        }
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--surface2);
+        }
+        select option {
+            background: var(--surface);
+        }
+
+        .btn-primary {
+            padding: 14px 28px;
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            background: var(--accent);
+            color: #0a0a0f;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+            white-space: nowrap;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(232,255,71,0.3);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-primary:disabled {
+            background: var(--surface2);
+            color: var(--muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Loading state */
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 16px;
+            padding: 40px 0;
+            color: var(--muted);
+            font-size: 13px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .loading.visible { display: flex; }
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Song card */
+        .song-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            display: none;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .song-card.visible { display: block; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .album-art-wrapper {
+            position: relative;
+            aspect-ratio: 16/9;
+            overflow: hidden;
+        }
+        .album-art-wrapper::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent 40%, var(--surface) 100%);
+        }
+        #albumArt {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+        .song-card:hover #albumArt {
+            transform: scale(1.03);
+        }
+
+        .genre-badge {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 2;
+            background: rgba(10,10,15,0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .card-body {
+            padding: 28px 28px 24px;
+        }
+
+        .track-meta {
+            margin-bottom: 24px;
+        }
+        .track-title {
+            font-family: 'Instrument Serif', serif;
+            font-size: 32px;
+            font-style: italic;
+            line-height: 1.1;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .artist-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
+        }
+        .album-name {
+            font-size: 13px;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+        }
+
+        /* Custom audio player */
+        .player {
+            background: var(--surface2);
+            border-radius: 14px;
+            padding: 18px 20px;
             margin-bottom: 20px;
         }
-        .controls select, .controls button {
-            padding: 10px;
-            margin-right: 10px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
         }
-        .regenerate-button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 5px;
+        .play-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #0a0a0f;
             border: none;
-            background-color: #28a745;
-            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .play-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 20px rgba(232,255,71,0.35);
+        }
+        .play-btn svg { width: 18px; height: 18px; }
+
+        .progress-area { flex: 1; }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+            margin-bottom: 6px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.1s linear;
+            position: relative;
+        }
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: -4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .progress-bar:hover .progress-fill::after { opacity: 1; }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+            letter-spacing: 0.06em;
+        }
+
+        .volume-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .volume-icon { color: var(--muted); }
+        .volume-icon svg { width: 16px; height: 16px; display: block; }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 80px;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
             cursor: pointer;
         }
-        .regenerate-button:hover {
-            background-color: #218838;
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
         }
-        .regenerate-button[disabled] {
-            background-color: #ccc;
+
+        /* Mode toggle */
+        .mode-toggle {
+            display: flex;
+            gap: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 10px 12px;
+            font-family: 'Syne', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--muted);
+            transition: background 0.2s, color 0.2s;
+        }
+        .mode-btn.active {
+            background: var(--surface2);
+            color: var(--text);
+        }
+        .mode-btn.active.discover {
+            color: var(--accent);
+        }
+        .mode-hint {
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+            margin-bottom: 20px;
+            padding-left: 2px;
+            min-height: 16px;
+        }
+
+        /* Preview notice */
+        .preview-notice {
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.06em;
+            text-align: center;
+        }
+
+        /* Another song button */
+        .btn-secondary {
+            width: 100%;
+            padding: 16px;
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s, color 0.2s;
+            margin-top: 12px;
+        }
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(232,255,71,0.04);
+        }
+        .btn-secondary:disabled {
+            opacity: 0.3;
             cursor: not-allowed;
+        }
+
+        /* Deezer link */
+        .deezer-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--muted);
+            text-decoration: none;
+            letter-spacing: 0.06em;
+            transition: color 0.2s;
+        }
+        .deezer-link:hover { color: var(--accent); }
+
+        /* Error state */
+        .error-msg {
+            display: none;
+            padding: 20px 24px;
+            background: rgba(255,107,107,0.08);
+            border: 1px solid rgba(255,107,107,0.2);
+            border-radius: 12px;
+            color: var(--accent2);
+            font-size: 14px;
+            letter-spacing: 0.02em;
+        }
+        .error-msg.visible { display: block; }
+
+        /* Footer */
+        footer {
+            margin-top: 48px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+            letter-spacing: 0.06em;
         }
     </style>
 </head>
 <body>
-    <div id="app">
-        <h1>RanSon</h1>
-        <div class="controls">
-            <select id="genreSelect"></select>
-            <button onclick="getSongByGenre()">Obtener canción</button>
+    <div class="app">
+        <header>
+            <div class="logo">&#9836; Descubridor musical</div>
+            <h1>Ran<span>Son</span></h1>
+            <p class="tagline">Canciones aleatorias por género · Powered by Deezer</p>
+        </header>
+
+        <div class="mode-toggle">
+            <button class="mode-btn active" id="btnPopular" onclick="setMode('popular')">🔥 Popular</button>
+            <button class="mode-btn discover" id="btnDiscover" onclick="setMode('discover')">🔭 Descubrir</button>
         </div>
-        <div id="songInfo"></div>
-        <button class="regenerate-button" id="regenerateButton" onclick="getSongByGenre()" disabled>¡Otra canción!</button>
+        <p class="mode-hint" id="modeHint">Top canciones del género — artistas conocidos</p>
+
+        <div class="controls">
+            <div class="select-wrapper">
+                <select id="genreSelect">
+                    <option value="">Cargando géneros...</option>
+                </select>
+            </div>
+            <button class="btn-primary" onclick="getSongByGenre()" id="fetchBtn">Buscar</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>Buscando canción...</span>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+
+        <div class="song-card" id="songCard">
+            <div class="album-art-wrapper">
+                <span class="genre-badge" id="genreBadge"></span>
+                <img id="albumArt" src="" alt="Portada del álbum">
+            </div>
+            <div class="card-body">
+                <div class="track-meta">
+                    <div class="track-title" id="trackTitle"></div>
+                    <div class="artist-name" id="artistName"></div>
+                    <div class="album-name" id="albumName"></div>
+                </div>
+
+                <div class="player">
+                    <div class="player-controls">
+                        <button class="play-btn" id="playBtn" onclick="togglePlay()">
+                            <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        </button>
+                        <div class="progress-area">
+                            <div class="progress-bar" id="progressBar" onclick="seekTo(event)">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <div class="time-display">
+                                <span id="currentTime">0:00</span>
+                                <span id="totalTime">0:30</span>
+                            </div>
+                        </div>
+                        <div class="volume-area">
+                            <span class="volume-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                            </span>
+                            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)">
+                        </div>
+                    </div>
+                    <div class="preview-notice">Vista previa de 30 segundos</div>
+                </div>
+
+                <a class="deezer-link" id="deezerLink" href="#" target="_blank">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+                    Escuchar completa en Deezer
+                </a>
+
+                <button class="btn-secondary" id="regenerateButton" onclick="getSongByGenre()" disabled>
+                    ↻ &nbsp;Otra canción
+                </button>
+            </div>
+        </div>
+
+        <footer>
+            RanSon · Música aleatoria para almas curiosas
+        </footer>
     </div>
 
+    <audio id="audioPlayer"></audio>
+
     <script>
-        function fetchGenres() {
-            var script = document.createElement('script');
-            var callbackName = 'genreCallback';
-            script.src = `https://api.deezer.com/genre?output=jsonp&callback=${callbackName}`;
-            document.body.appendChild(script);
+        const audio = document.getElementById('audioPlayer');
+        let isPlaying = false;
+        let currentMode = 'popular';
 
-            window[callbackName] = function(data) {
-                var genreSelect = document.getElementById('genreSelect');
-                data.data.forEach(function(genre) {
-                    if (genre.name !== "All") {
-                        var option = document.createElement('option');
-                        option.value = genre.id;
-                        option.textContent = genre.name;
-                        genreSelect.appendChild(option);
-                    }
-                });
-
-                document.body.removeChild(script);
-                delete window[callbackName];
-            };
+        // ── Mode toggle ──────────────────────────────────────────────────────────
+        const MODE_HINTS = {
+            popular:  'Top canciones del género — artistas conocidos',
+            discover: 'Canciones menos conocidas — sorpréndete con algo nuevo'
+        };
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btnPopular').classList.toggle('active', mode === 'popular');
+            document.getElementById('btnDiscover').classList.toggle('active', mode === 'discover');
+            document.getElementById('modeHint').textContent = MODE_HINTS[mode];
         }
 
-        fetchGenres();
+        // ── Géneros curados con IDs verificados de Deezer ────────────────────────
+        const GENRES = [
+            { id: 132,  name: '🎸 Pop',           tag: 'pop' },
+            { id: 152,  name: '🤘 Rock',          tag: 'rock' },
+            { id: 113,  name: '🎤 Hip-Hop / Rap', tag: 'rap' },
+            { id: 165,  name: '⚡ Electronic',    tag: 'electronic' },
+            { id: 129,  name: '🎷 Jazz',          tag: 'jazz' },
+            { id: 98,   name: '🎻 Clásica',       tag: 'classical' },
+            { id: 116,  name: '🎺 R&B / Soul',    tag: 'rnb' },
+            { id: 85,   name: '🌿 Alternative',   tag: 'alternative' },
+            { id: 144,  name: '💀 Metal',         tag: 'metal' },
+            { id: 197,  name: '🌍 Reggae',        tag: 'reggae' },
+            { id: 173,  name: '🎵 Indie',         tag: 'indie' },
+            { id: 169,  name: '🎹 Dance',         tag: 'dance' },
+            { id: 75,   name: '🤠 Country',       tag: 'country' },
+            { id: 106,  name: '🎙️ Latino',        tag: 'latino' },
+            { id: 464,  name: '🎸 Blues',         tag: 'blues' },
+            { id: 153,  name: '🎶 Folk',          tag: 'folk' },
+            { id: 167,  name: '🌊 Ambient',       tag: 'ambient' },
+            { id: 185,  name: '🎤 K-Pop',         tag: 'kpop' },
+        ];
 
+        function populateGenres() {
+            const sel = document.getElementById('genreSelect');
+            sel.innerHTML = '';
+            GENRES.forEach(g => {
+                const o = document.createElement('option');
+                o.value = g.id;
+                o.textContent = g.name;
+                sel.appendChild(o);
+            });
+        }
+        populateGenres();
+
+        // ── Helpers ──────────────────────────────────────────────────────────────
+        function setLoading(on) {
+            document.getElementById('loading').classList.toggle('visible', on);
+            document.getElementById('fetchBtn').disabled = on;
+            document.getElementById('regenerateButton').disabled = on;
+        }
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.add('visible');
+        }
+        function clearError() {
+            document.getElementById('errorMsg').classList.remove('visible');
+        }
+        function getSelectedGenre() {
+            const sel = document.getElementById('genreSelect');
+            const id  = sel.value;
+            const opt = sel.selectedOptions[0];
+            const genre = GENRES.find(g => String(g.id) === String(id));
+            return { id, name: opt?.textContent || '', tag: genre?.tag || '' };
+        }
+        function pickWithPreview(pool) {
+            const ok = pool.filter(t => t.preview);
+            return ok.length ? ok[Math.floor(Math.random() * ok.length)] : null;
+        }
+
+        // ── Main entry ───────────────────────────────────────────────────────────
         function getSongByGenre() {
-            var genreId = document.getElementById('genreSelect').value;
-            var callbackName = 'genreSongCallback';
-            var script = document.createElement('script');
-            script.src = `https://api.deezer.com/genre/${genreId}/artists?output=jsonp&callback=${callbackName}`;
-            document.body.appendChild(script);
+            clearError();
+            pauseAudio();
+            const genre = getSelectedGenre();
+            if (!genre.id) return;
+            setLoading(true);
+            document.getElementById('songCard').classList.remove('visible');
+            currentMode === 'popular' ? fetchPopular(genre) : fetchDiscover(genre);
+        }
 
-            window[callbackName] = function(data) {
-                if (data.data.length === 0) {
-                    alert('No se encontraron canciones para este género.');
+        // ── Popular: chart/{genreId}/tracks — top 50 reales del género ───────────
+        function fetchPopular(genre) {
+            const s = document.createElement('script');
+            window._chartCb = function(data) {
+                document.body.removeChild(s);
+                delete window._chartCb;
+                setLoading(false);
+                if (!data.data || data.data.length === 0) {
+                    showError('No se encontraron canciones para este género.');
                     return;
                 }
-
-                var randomArtist = data.data[Math.floor(Math.random() * data.data.length)];
-                var artistCallbackName = 'artistCallback';
-                var artistScript = document.createElement('script');
-                artistScript.src = `https://api.deezer.com/artist/${randomArtist.id}/top?limit=50&output=jsonp&callback=${artistCallbackName}`;
-                document.body.appendChild(artistScript);
-
-                window[artistCallbackName] = function(trackData) {
-                    if (trackData.data.length === 0) {
-                        alert('No se encontraron canciones para este artista.');
-                        return;
-                    }
-
-                    var randomTrack = trackData.data[Math.floor(Math.random() * trackData.data.length)];
-                    displayTrackInfo(randomTrack);
-
-                    document.getElementById('regenerateButton').disabled = false;
-
-                    document.body.removeChild(artistScript);
-                    delete window[artistCallbackName];
-                };
-
-                document.body.removeChild(script);
-                delete window[callbackName];
+                const track = pickWithPreview(data.data.slice(0, 50));
+                if (!track) { getSongByGenre(); return; }
+                displayTrack(track, genre.name);
+                document.getElementById('regenerateButton').disabled = false;
             };
+            s.src = `https://api.deezer.com/chart/${genre.id}/tracks?limit=50&output=jsonp&callback=_chartCb`;
+            document.body.appendChild(s);
         }
 
-        function displayTrackInfo(track) {
-            var songInfoElement = document.getElementById("songInfo");
-            songInfoElement.innerHTML = `
-                <h2>Nombre de la canción: ${track.title}</h2>
-                <h3>Nombre de la banda: ${track.artist.name}</h3>
-                <h4>Álbum: ${track.album.title}</h4>
-                <img src="${track.album.cover_big}" alt="Portada">
-                <audio controls>
-                    <source src="${track.preview}" type="audio/mpeg">
-                    Su navegador no soporta el elemento de audio.
-                </audio>
-            `;
+        // ── Discover: search con offset aleatorio alto — fuera del top ───────────
+        // El tag garantiza que sea del género correcto; el offset alto saca la canción
+        // del top y la pone en territorio de artistas menos conocidos pero reales.
+        function fetchDiscover(genre, fallback) {
+            const offset = fallback
+                ? Math.floor(Math.random() * 100) + 25
+                : Math.floor(Math.random() * 450) + 50;
+            const cb = fallback ? '_searchFbCb' : '_searchCb';
+            const s = document.createElement('script');
+            window[cb] = function(data) {
+                document.body.removeChild(s);
+                delete window[cb];
+                setLoading(false);
+                if (!data.data || data.data.length === 0) {
+                    if (!fallback) { fetchDiscover(genre, true); return; }
+                    showError('No se encontraron canciones. Intenta con otro género.');
+                    return;
+                }
+                const track = pickWithPreview(data.data);
+                if (!track) {
+                    if (!fallback) { fetchDiscover(genre, true); return; }
+                    showError('No se encontró preview de audio. Intenta de nuevo.');
+                    return;
+                }
+                displayTrack(track, genre.name + ' · 🔭');
+                document.getElementById('regenerateButton').disabled = false;
+            };
+            s.src = `https://api.deezer.com/search/track?q=${encodeURIComponent(genre.tag)}&order=RANKING&limit=25&index=${offset}&output=jsonp&callback=${cb}`;
+            document.body.appendChild(s);
         }
+
+        // ── Display ──────────────────────────────────────────────────────────────
+        function displayTrack(track, genreName) {
+            document.getElementById('trackTitle').textContent = track.title;
+            document.getElementById('artistName').textContent = track.artist.name;
+            document.getElementById('albumName').textContent = '📀 ' + track.album.title;
+            document.getElementById('albumArt').src = track.album.cover_big;
+            document.getElementById('genreBadge').textContent = genreName;
+            document.getElementById('deezerLink').href = track.link || '#';
+
+            audio.src = track.preview;
+            audio.volume = parseFloat(document.getElementById('volumeSlider').value);
+            audio.load();
+            resetPlayer();
+            document.getElementById('songCard').classList.add('visible');
+        }
+
+        // ── Player ───────────────────────────────────────────────────────────────
+        function resetPlayer() {
+            isPlaying = false;
+            document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('currentTime').textContent = '0:00';
+        }
+
+        function pauseAudio() {
+            audio.pause();
+            isPlaying = false;
+            document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+        }
+
+        function togglePlay() {
+            if (audio.paused) {
+                audio.play().catch(() => {});
+                isPlaying = true;
+                document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+            } else {
+                audio.pause();
+                isPlaying = false;
+                document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+            }
+        }
+
+        function seekTo(e) {
+            const bar = document.getElementById('progressBar');
+            const ratio = e.offsetX / bar.offsetWidth;
+            if (audio.duration) audio.currentTime = ratio * audio.duration;
+        }
+
+        function setVolume(v) { audio.volume = parseFloat(v); }
+
+        function formatTime(s) {
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            return `${m}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        audio.addEventListener('timeupdate', () => {
+            if (!audio.duration) return;
+            const pct = (audio.currentTime / audio.duration) * 100;
+            document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('currentTime').textContent = formatTime(audio.currentTime);
+            document.getElementById('totalTime').textContent = formatTime(audio.duration);
+        });
+
+        audio.addEventListener('ended', resetPlayer);
     </script>
 </body>
 </html>
